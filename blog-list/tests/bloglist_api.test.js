@@ -99,6 +99,45 @@ test('when title and/or url property are missing, bad request status code is ret
     .expect(400)
 })
 
+describe('deletion of a note', () => {
+  test('succeeds with status code 204 if id is valid', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+
+    const blogToDelete = blogsAtStart[0]
+
+
+    await api
+      .delete(`/api/blogs/${blogToDelete.id}`)
+      .expect(204)
+
+    const blogsAtEnd = await helper.blogsInDb()
+
+
+    expect(blogsAtEnd).toHaveLength(
+      helper.initialBlogs.length - 1
+    )
+
+    const titles = blogsAtEnd.map(blog => blog.title)
+
+    expect(titles).not.toContain(blogToDelete.title)
+
+  })
+})
+
+describe('updating the information of an individual blog post', () => {
+  test('likes property is successfully updated', async () => {
+    const blogs =  await helper.blogsInDb()
+    const blogToUpdate = blogs[0]
+
+    blogToUpdate.likes = 99
+
+    await api
+      .put(`/api/blogs/${blogToUpdate.id}`)
+      .send(blogToUpdate)
+      .expect(200)
+  })
+})
+
 afterAll(() => {
   mongoose.connection.close()
 })
