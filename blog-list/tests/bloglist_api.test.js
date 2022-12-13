@@ -1,9 +1,13 @@
 const mongoose = require('mongoose')
 const supertest = require('supertest')
+const bcrypt = require('bcrypt')
+
 const helper = require('./bloglist_helper')
-const Blog = require('../models/blog')
 const app = require('../app')
 const api = supertest(app)
+
+const Blog = require('../models/blog')
+const User = require('../models/user')
 
 beforeEach(async () => {
   await Blog.deleteMany({})
@@ -141,6 +145,39 @@ describe('updating the information of an individual blog post', () => {
       .put(`/api/blogs/${blogToUpdate.id}`)
       .send(blogToUpdate)
       .expect(200)
+  })
+})
+
+describe('when there is initially one user in db', () => {
+  beforeEach( async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('secret', 10)
+    const user = new User({ username: 'root', passwordHash })
+
+    await user.save()
+  })
+
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    expect(result.body.error).toContain('username must be unique')
+
+    const usersAtEnd = await helper.usersInDb()
+    expect(usersAtEnd).toEqual(usersAtStart)
+
   })
 })
 
