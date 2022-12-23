@@ -1,7 +1,6 @@
 const blogsRouter = require('express').Router()
-const jwt = require('jsonwebtoken')
+const userExtractor = require('../utils/middleware').userExtractor
 const Blog = require('../models/blog')
-const User = require('../models/user')
 
 blogsRouter.get('/', async (request, response) => {
   const blogs = await Blog
@@ -9,13 +8,9 @@ blogsRouter.get('/', async (request, response) => {
   response.json(blogs)
 })
 
-blogsRouter.post('/', async (request, response) => {
+blogsRouter.post('/', userExtractor, async (request, response) => {
   const body = request.body
-  const decodedToken = jwt.verify(request.token, process.env.SECRET)
-  if (!decodedToken.id) {
-    return response.status(401).json({ error: 'token missing or invalid' })
-  }
-  const user = await User.findById(decodedToken.id)
+  const user = request.user
 
   const blog = new Blog({
     title: body.title,
@@ -27,7 +22,7 @@ blogsRouter.post('/', async (request, response) => {
   const savedBlog = await blog.save()
   user.blogs = user.blogs.concat(savedBlog._id)
   await user.save()
-  response.json(savedBlog)``
+  response.json(savedBlog)
 })
 
 blogsRouter.get('/:id', async (request, response) => {
@@ -39,19 +34,16 @@ blogsRouter.get('/:id', async (request, response) => {
   }
 })
 
-blogsRouter.delete('/:id', async (request, response) => {
-  const decodedToken = jwt.verify(request.token, process.env.SECRET)
-  if (!decodedToken.id) {
-    return response.status(401).json({ error: 'token missing or invalid' })
+blogsRouter.delete('/:id', userExtractor, async (request, response) => {
+
+  const blog = await Blog.findById(request.params.id)
+  if (blog.user.toString() === request.user._id.toString()) {
+    await Blog.findByIdAndDelete(request.params.id)
+    response.status(204).end()
   }else {
-    const blog = await Blog.findById(request.params.id)
-    if (blog.user.toString() === decodedToken.id) {
-      await Blog.findByIdAndDelete(request.params.id)
-      response.status(204).end()
-    }else {
-      return response.status(401).json({ error: 'user isn\'t the creator of the blog' })
-    }
+    return response.status(401).json({ error: 'user isn\'t the creator of the blog' })
   }
+
 })
 
 blogsRouter.put('/:id', async (request, response) => {
