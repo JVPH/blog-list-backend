@@ -22,7 +22,7 @@ blogsRouter.post('/', userExtractor, async (request, response) => {
   const savedBlog = await blog.save()
   user.blogs = user.blogs.concat(savedBlog._id)
   await user.save()
-  response.json(savedBlog)
+  response.status(201).json(savedBlog)
 })
 
 blogsRouter.get('/:id', async (request, response) => {
@@ -35,10 +35,12 @@ blogsRouter.get('/:id', async (request, response) => {
 })
 
 blogsRouter.delete('/:id', userExtractor, async (request, response) => {
-
   const blog = await Blog.findById(request.params.id)
-  if (blog.user.toString() === request.user._id.toString()) {
+  const user = request.user
+  if (blog.user.toString() === user._id.toString()) {
     await Blog.findByIdAndDelete(request.params.id)
+    user.blogs = user.blogs.filter(blog => blog.toString() !== request.params.id.toString())
+    await user.save()
     response.status(204).end()
   }else {
     return response.status(401).json({ error: 'user isn\'t the creator of the blog' })
