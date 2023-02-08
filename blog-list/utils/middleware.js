@@ -5,8 +5,12 @@ const User = require('../models/user')
 const requestLogger = (request, response, next) => {
   logger.info('Method:', request.method)
   logger.info('Path:  ', request.path)
-  logger.info('Body:  ', request.body)
-  logger.info('---')
+  if((request.path === '/api/login' || request.path === '/api/users') && request.method === 'POST'){
+    logger.info('Body: Confidential Data')
+  }else {
+    logger.info('Body:  ', request.body)
+  }
+  logger.info('---------------------------')
   next()
 }
 
