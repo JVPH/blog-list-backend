@@ -1,4 +1,4 @@
 # bloglist-backend
 
-Blog List App built with MERN stack.
+Blog List backend built with Node, Express and MongoDB.
 Live at: https://blog-list-nymy.onrender.com
